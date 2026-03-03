@@ -10,44 +10,28 @@ mcp = FastMCP("restcountries-mcp")
 # ---------------------------------------------------
 
 @mcp.tool()
-async def get_country_by_name(name: str):
-    """
-    Get detailed country information by country name.
-    Example: Peru, India, France
-    """
-    url = f"{BASE_URL}/name/{name}"
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
+async def search_country_by_name(name: str) -> str:
+    """Fetches key data (capital, pop, area) for a country."""
+    url = f"https://restcountries.com/v3.1/name/{name}?fullText=true"
+    async with httpx.AsyncClient() as client:
         response = await client.get(url)
-
-    if response.status_code != 200:
-        raise Exception(
-            f"Error fetching country '{name}': "
-            f"{response.status_code} - {response.text}"
-        )
-
-    return response.json()
-
-
-@mcp.tool()
-async def get_countries_by_fields(fields: list[str]):
-    """
-    Get all countries but only return specified fields.
-    Example: ["name", "capital", "population"]
-    """
-    fields_param = ",".join(fields)
-    url = f"{BASE_URL}/all?fields={fields_param}"
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.get(url)
-
-    if response.status_code != 200:
-        raise Exception(
-            f"Error fetching fields {fields}: "
-            f"{response.status_code} - {response.text}"
-        )
-
-    return response.json()
+        if response.status_code != 200:
+            return f"Error: Country '{name}' not found."
+            
+        data = response.json()
+        
+        # KEY PERFORMANCE TUNING: Filtering the blob
+        optimized_list = []
+        for country in data:
+            optimized_list.append({
+                "common_name": country.get("name", {}).get("common"),
+                "capital": country.get("capital", ["N/A"])[0],
+                "population": f"{country.get('population', 0):,}",
+                "area_km2": country.get("area"),
+                "region": country.get("region")
+            })
+            
+        return str(optimized_list) # can be something like response.json() as well.
 
 
 # ---------------------------------------------------
@@ -55,4 +39,9 @@ async def get_countries_by_fields(fields: list[str]):
 # ---------------------------------------------------
 
 if __name__ == "__main__":
-    mcp.run()
+    import sys
+
+    if "--stdio" in sys.argv:
+        mcp.run(transport="stdio")
+    else:
+        mcp.run(transport="sse", host="0.0.0.0", port=8000)
