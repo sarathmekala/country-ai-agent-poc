@@ -1,0 +1,19 @@
+langchain
+langchain-ollama
+langchain-community 
+fastmcp
+
+# MCP Server & Client Core
+fastmcp
+langchain-mcp-adapters
+sse-starlette
+
+# LLM & Logic
+langchain
+langchain-ollama
+langchain-classic
+
+# Web & API
+fastapi
+uvicorn
+httpx
